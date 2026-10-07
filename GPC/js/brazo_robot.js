@@ -14,9 +14,12 @@ render();
 
 function init()
 {
-  renderer = new THREE.WebGLRenderer(); // Crea el renderizador WebGL
+  renderer = new THREE.WebGLRenderer({ antialias: true }); // Crea el renderizador WebGL
   renderer.setSize( window.innerWidth, window.innerHeight ); // Ajusta el tamaño del renderizador al tamaño de la ventana
   renderer.setClearColor( new THREE.Color(0xFFFFFF) ); // Color de fondo del renderizador
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.getElementById('container').appendChild( renderer.domElement );
 
   scene = new THREE.Scene();
@@ -53,14 +56,115 @@ function loadScene()
 
   const brazo = new THREE.Object3D();
 
+  const cubemap = new THREE.CubeTextureLoader().load([
+    'images/posx.jpg',
+    'images/negx.jpg',
+    'images/posy.jpg',
+    'images/negy.jpg',
+    'images/posz.jpg',
+    'images/negz.jpg'
+  ], function(textura)
+  {
+    textura.encoding = THREE.sRGBEncoding;
+  }, undefined, function(error)
+  {
+    console.error('No se pudo cargar el mapa de entorno.', error);
+  });
+  cubemap.encoding = THREE.sRGBEncoding;
+  cubemap.mapping = THREE.CubeReflectionMapping;
+
+  const texturaHabitacion = new THREE.TextureLoader();
+  function cargarTexturaHabitacion(ruta)
+  {
+    const textura = texturaHabitacion.load(ruta);
+    textura.encoding = THREE.sRGBEncoding;
+    return textura;
+  }
+  const materialesHabitacion = [
+    new THREE.MeshBasicMaterial({ map: cargarTexturaHabitacion('images/posx.jpg'), side: THREE.BackSide }),
+    new THREE.MeshBasicMaterial({ map: cargarTexturaHabitacion('images/negx.jpg'), side: THREE.BackSide }),
+    new THREE.MeshBasicMaterial({ map: cargarTexturaHabitacion('images/posy.jpg'), side: THREE.BackSide }),
+    new THREE.MeshBasicMaterial({ map: cargarTexturaHabitacion('images/negy.jpg'), side: THREE.BackSide }),
+    new THREE.MeshBasicMaterial({ map: cargarTexturaHabitacion('images/posz.jpg'), side: THREE.BackSide }),
+    new THREE.MeshBasicMaterial({ map: cargarTexturaHabitacion('images/negz.jpg'), side: THREE.BackSide })
+  ];
+  const habitacion = new THREE.Mesh(
+    new THREE.BoxGeometry(1000, 1650, 1000),
+    materialesHabitacion
+  );
+  // El suelo de la habitación coincide con el plano de la escena (y = 0).
+  habitacion.position.y = 800;
+  scene.add(habitacion);
+
   // 1. Añadir el piso a la escena 
   const geometriaPiso = new THREE.PlaneGeometry(1000, 1000, 10, 10); 
-  const material_piso = new THREE.MeshBasicMaterial( { color: 0xd0d4d8, side: THREE.DoubleSide } );
+  var texturaSuelo = new THREE.TextureLoader().load(
+    'images/pisometalico_1024.jpg'
+  );
+  
+  texturaSuelo.wrapS = THREE.MirroredRepeatWrapping;
+  texturaSuelo.wrapT = THREE.MirroredRepeatWrapping;
+  texturaSuelo.repeat.set(2, 2);
+  
+
+  texturaSuelo.encoding = THREE.sRGBEncoding;
+
+  const material_piso = new THREE.MeshLambertMaterial( {
+    color: 0xd0d4d8,
+    roughness: 0.8,
+    map: texturaSuelo,
+    side: THREE.DoubleSide
+  } );
   const piso = new THREE.Mesh(geometriaPiso,material_piso); 
   piso.rotateOnAxis(new THREE.Vector3(1, 0, 0), -Math.PI/2) ; 
+  piso.receiveShadow = true;
   scene.add(piso);
 
-  const material_figura = new THREE.MeshNormalMaterial( { side: THREE.DoubleSide } );
+  var texturaRobot = new THREE.TextureLoader().load(
+    'images/metal_128.jpg'
+  );
+  
+  texturaRobot.wrapS = THREE.RepeatWrapping;
+  texturaRobot.wrapT = THREE.RepeatWrapping;
+  texturaRobot.repeat.set(1, 1);
+  texturaRobot.encoding = THREE.sRGBEncoding;
+  texturaRobot.magFilter = THREE.LinearFilter;
+  texturaRobot.minFilter = THREE.LinearMipmapLinearFilter;
+  texturaRobot.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+
+
+  const material_figura = new THREE.MeshLambertMaterial( {
+    color: 0xffffff,
+    map: texturaRobot,
+    side: THREE.DoubleSide
+  } );
+
+  const material_rotula = new THREE.MeshPhongMaterial({
+    color: 0xffffff,
+    envMap: cubemap,
+    combine: THREE.MixOperation,
+    reflectivity: 1,
+    shininess: 100,
+    specular: 0xffffff,
+    side: THREE.DoubleSide
+  });
+
+  const texturaAntebrazo = new THREE.TextureLoader().load(
+    'images/wood512.jpg'
+  );
+  texturaAntebrazo.wrapS = THREE.RepeatWrapping;
+  texturaAntebrazo.wrapT = THREE.RepeatWrapping;
+  texturaAntebrazo.repeat.set(1, 1);
+  texturaAntebrazo.encoding = THREE.sRGBEncoding;
+
+  const material_antebrazo = new THREE.MeshPhongMaterial({
+    color: 0xffffff,
+    shininess: 100,
+    specular: 0xffffff,
+    map: texturaAntebrazo,
+    side: THREE.DoubleSide
+  });
 
   const base = new THREE.Object3D();
 	
@@ -90,8 +194,8 @@ function loadScene()
   brazo_superior.add( cube_brazo );
 
   // 3.3 esfera
-  const geometry_esfera_brazo = new THREE.SphereGeometry( 20, 32, 16 );
-  const sphere_brazo = new THREE.Mesh( geometry_esfera_brazo, material_figura );
+  const geometry_esfera_brazo = new THREE.SphereGeometry( 20, 64, 32 );
+  const sphere_brazo = new THREE.Mesh( geometry_esfera_brazo, material_rotula );
   sphere_brazo.position.y = 120;
   brazo_superior.add( sphere_brazo );
 
@@ -101,32 +205,32 @@ function loadScene()
 
   // 4. cilindro
   const geometry_cilindro_antebrazo= new THREE.CylinderGeometry( 22, 22, 6, 32 );
-  const cylinder_antebrazo = new THREE.Mesh( geometry_cilindro_antebrazo, material_figura );
+  const cylinder_antebrazo = new THREE.Mesh( geometry_cilindro_antebrazo, material_antebrazo );
   cylinder_antebrazo.position.y = 0;
   antebrazo.add( cylinder_antebrazo );
 
   // 4.2 cubos alargado
   const a=8
   const geometry_cubo_antebrazo = new THREE.BoxGeometry( 4, 80, 4 );
-  const cube_antebrazo_1 = new THREE.Mesh( geometry_cubo_antebrazo, material_figura );
+  const cube_antebrazo_1 = new THREE.Mesh( geometry_cubo_antebrazo, material_antebrazo );
   cube_antebrazo_1.position.y = 40;
   cube_antebrazo_1.position.x = a;
   cube_antebrazo_1.position.z = a;
   antebrazo.add( cube_antebrazo_1 );
 
-  const cube_antebrazo_2 = new THREE.Mesh( geometry_cubo_antebrazo, material_figura );
+  const cube_antebrazo_2 = new THREE.Mesh( geometry_cubo_antebrazo, material_antebrazo );
   cube_antebrazo_2.position.y = 40;
   cube_antebrazo_2.position.x = a;
   cube_antebrazo_2.position.z = -a;
   antebrazo.add( cube_antebrazo_2 );
 
-  const cube_antebrazo_3 = new THREE.Mesh( geometry_cubo_antebrazo, material_figura );
+  const cube_antebrazo_3 = new THREE.Mesh( geometry_cubo_antebrazo, material_antebrazo );
   cube_antebrazo_3.position.y = 40;
   cube_antebrazo_3.position.x = -a;
   cube_antebrazo_3.position.z = -a;
   antebrazo.add( cube_antebrazo_3 );
 
-  const cube_antebrazo_4 = new THREE.Mesh( geometry_cubo_antebrazo, material_figura );
+  const cube_antebrazo_4 = new THREE.Mesh( geometry_cubo_antebrazo, material_antebrazo );
   cube_antebrazo_4.position.y = 40;
   cube_antebrazo_4.position.x = -a;
   cube_antebrazo_4.position.z = a;
@@ -137,7 +241,7 @@ function loadScene()
 
   // 4.3 cilindro
   const geometry_cilindro_antebrazo_2= new THREE.CylinderGeometry( 15, 15, 40, 32 );
-  const cylinder_antebrazo_2 = new THREE.Mesh( geometry_cilindro_antebrazo_2, material_figura );
+  const cylinder_antebrazo_2 = new THREE.Mesh( geometry_cilindro_antebrazo_2, material_antebrazo );
   cylinder_antebrazo_2.position.y = 80;
   cylinder_antebrazo_2.rotateOnAxis(new THREE.Vector3(1, 0, 0), -Math.PI/2) ;
   antebrazo.add( cylinder_antebrazo_2 );
@@ -177,7 +281,7 @@ geometry_cubo_pinza_buffer_1.setAttribute('position', new THREE.BufferAttribute(
 geometry_cubo_pinza_buffer_1.setIndex(indices_pinza);
 geometry_cubo_pinza_buffer_1.computeVertexNormals();
 
-const mitad_pinza_1 = new THREE.Mesh(geometry_cubo_pinza_buffer_1, material_figura);
+const mitad_pinza_1 = new THREE.Mesh(geometry_cubo_pinza_buffer_1, material_antebrazo);
 mitad_pinza_1.rotateOnAxis(new THREE.Vector3(0, 0, 1), -Math.PI/2) ;
 mitad_pinza_1.position.y = 10;
 mitad_pinza_1.position.x = 0;
@@ -189,7 +293,7 @@ geometry_cubo_pinza_buffer_2.setAttribute('position', new THREE.BufferAttribute(
 geometry_cubo_pinza_buffer_2.setIndex(indices_pinza);
 geometry_cubo_pinza_buffer_2.computeVertexNormals();
 
-const mitad_pinza_2 = new THREE.Mesh(geometry_cubo_pinza_buffer_2, material_figura);
+const mitad_pinza_2 = new THREE.Mesh(geometry_cubo_pinza_buffer_2, material_antebrazo);
 mitad_pinza_2.scale.z = -1;
 mitad_pinza_2.rotateOnAxis(new THREE.Vector3(0, 0, 1), -Math.PI/2) ;
 mitad_pinza_2.position.y = 10;
@@ -199,6 +303,57 @@ mano.add(mitad_pinza_2);
 
 scene.add( brazo );
 crearPanel(brazo, brazo_superior, antebrazo, mano, mitad_pinza_1, mitad_pinza_2);
+
+  brazo.traverse(function(objeto)
+  {
+    if (objeto.isMesh)
+    {
+      objeto.castShadow = true;
+      objeto.receiveShadow = true;
+    }
+  });
+
+// Luces
+
+// Añadir luz ambiental
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // luz tenue
+scene.add(ambientLight);
+
+
+
+// Añadir luz direccional
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+directionalLight.position.set(100, 100, 100);
+directionalLight.castShadow = true;
+directionalLight.shadow.mapSize.set(2048, 2048);
+directionalLight.shadow.camera.left = -300;
+directionalLight.shadow.camera.right = 300;
+directionalLight.shadow.camera.top = 300;
+directionalLight.shadow.camera.bottom = -300;
+directionalLight.shadow.camera.near = 1;
+directionalLight.shadow.camera.far = 1000;
+directionalLight.shadow.bias = -0.0001;
+scene.add(directionalLight);  
+
+// Añadir luz de foco (spotlight)
+const spotLight = new THREE.SpotLight(0xffffff, 2); // color, intensidad
+spotLight.position.set(-300, 500, 300); // Posicionar la luz de foco
+spotLight.target.position.set(0, 0, 0); // Apuntar hacia el origen (o hacia cualquier objeto)
+spotLight.castShadow = true;
+spotLight.shadow.mapSize.set(2048, 2048);
+spotLight.shadow.camera.near = 1;
+spotLight.shadow.camera.far = 600;
+spotLight.shadow.bias = -0.0002;
+spotLight.shadow.normalBias = 0.02;
+scene.add(spotLight.target);
+
+// Ajustar las propiedades del cono
+spotLight.angle = Math.PI / 4; // Cono suficientemente amplio para iluminar el robot
+spotLight.penumbra = 0; // Cono sin suavizado
+spotLight.distance = 1200; // Distancia a la que afecta la luz
+spotLight.decay = 2; // Atenuación con la distancia
+
+scene.add(spotLight);
     
 }
 
