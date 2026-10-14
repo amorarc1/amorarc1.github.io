@@ -5,11 +5,8 @@ var renderer, scene, camera, cameraNormal;
 var cameraControls;
 var angulo = -0.01;
 
-// 1-inicializa 
 init();
-// 2-Crea una escena
 loadScene();
-// 3-renderiza
 render();
 
 function init()
@@ -335,10 +332,10 @@ directionalLight.shadow.camera.far = 1000;
 directionalLight.shadow.bias = -0.0001;
 scene.add(directionalLight);  
 
-// Añadir luz de foco (spotlight)
-const spotLight = new THREE.SpotLight(0xffffff, 2); // color, intensidad
-spotLight.position.set(-300, 500, 300); // Posicionar la luz de foco
-spotLight.target.position.set(0, 0, 0); // Apuntar hacia el origen (o hacia cualquier objeto)
+// Añadir luz spotlight
+const spotLight = new THREE.SpotLight(0xffffff, 2); 
+spotLight.position.set(-300, 500, 300);
+spotLight.target.position.set(0, 0, 0); 
 spotLight.castShadow = true;
 spotLight.shadow.mapSize.set(2048, 2048);
 spotLight.shadow.camera.near = 1;
@@ -347,11 +344,11 @@ spotLight.shadow.bias = -0.0002;
 spotLight.shadow.normalBias = 0.02;
 scene.add(spotLight.target);
 
-// Ajustar las propiedades del cono
-spotLight.angle = Math.PI / 4; // Cono suficientemente amplio para iluminar el robot
-spotLight.penumbra = 0; // Cono sin suavizado
-spotLight.distance = 1200; // Distancia a la que afecta la luz
-spotLight.decay = 2; // Atenuación con la distancia
+
+spotLight.angle = Math.PI / 4; 
+spotLight.penumbra = 0; 
+spotLight.distance = 1200; 
+spotLight.decay = 2; 
 
 scene.add(spotLight);
     
