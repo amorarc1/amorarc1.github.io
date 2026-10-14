@@ -279,7 +279,7 @@ function cargarTextura(archivo, extensiones)
         {
             if (intento >= extensiones.length)
             {
-                console.warn('No se pudo cargar la textura. Probé: ' +
+                console.error('No se pudo cargar la textura. Probé: ' +
                     extensiones.map(function (e) { return 'images/' + archivo + e; }).join(', '));
                 return;
             }
@@ -465,7 +465,7 @@ function prepararEntornoMetal(texturaCielo)
     }
     catch (error)
     {
-        console.warn('No se pudo preparar el reflejo del cielo para los metales:', error);
+        console.error('No se pudo preparar el reflejo del cielo para los metales:', error);
     }
 }
 
@@ -922,9 +922,9 @@ function loadScene()
     crearMinimapa();
 }
 
-function filaInstruccion(icono, titulo, parrafos)
+function filaInstruccion(titulo, parrafos)
 {
-    return '<div class="fila"><div class="icono">' + icono + '</div><div><h2>' + titulo + '</h2>' +
+    return '<div class="fila"><div><h2>' + titulo + '</h2>' +
         parrafos.map(function (t) { return '<p>' + t + '</p>'; }).join('') + '</div></div>';
 }
 
@@ -936,19 +936,19 @@ function puntoColor(color)
 function instruccionesTutorial()
 {
     return '<h1>Tutorial</h1>' +
-        filaInstruccion('🎮', 'Controles', [
+        filaInstruccion('Controles', [
             '<b>Movimiento:</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> (o las flechas) para mover al gato. ' +
             'Arrastra con el botón izquierdo del ratón para girar la cámara y prueba a hacer zoom.',
             '<b>Pausa:</b> <kbd>P</kbd> pausa el juego y te deja mover la cámara libremente para admirar la vista de la ciudad. Púlsala otra vez para continuar.'
         ]) +
-        filaInstruccion('🍕', 'Objetivo', [
+        filaInstruccion('Objetivo', [
             '<b>Pizzas:</b> recoge los ' + totalPizzas + ' trozos de pizza repartidos por la carretera y las aceras. ' +
             'El contador de arriba a la izquierda muestra cuántos llevas.',
             '<b>Manzanas:</b> al comer una manzana, el gato empezará a correr e irás el doble de rápido durante ' + duracionEfectoManzana + ' segundos. ' +
             'Ojo que no se acumula: si coges otra, la cuenta simplemente vuelve a empezar (no queremos gatos yendo a la velocidad de la luz).',
             '<b>Tiempo:</b> el cronómetro arranca al pulsar Empezar y se detiene cuando recoges la última pizza. ¡Hazlo lo más rápido que puedas!'
         ]) +
-        filaInstruccion('🗺', 'Minimapa', [
+        filaInstruccion('Minimapa', [
             puntoColor('#1e6bff') + ' Pizzas &nbsp; ' + puntoColor('#ff2a2a') + ' Manzanas &nbsp; ' + puntoColor('#ffd400') + ' Tú (la punta indica hacia dónde miras)'
         ]);
 }
@@ -956,7 +956,7 @@ function instruccionesTutorial()
 function instruccionesNivel1()
 {
     return '<h1>Nivel 1</h1>' +
-        filaInstruccion('🏙', '¡La ciudad se ha ampliado!', [
+        filaInstruccion('¡La ciudad se ha ampliado!', [
             'Ahora tenemos un parque y una zona alta en la ciudad.',
             '¡Recoge las pizzas en el menor tiempo posible! Ayúdate del mapa si lo necesitas.'
         ]);
@@ -965,7 +965,7 @@ function instruccionesNivel1()
 function instruccionesNivel2()
 {
     return '<h1>Nivel 2</h1>' +
-        filaInstruccion('🌙', 'Se ha hecho de noche', [
+        filaInstruccion('Se ha hecho de noche', [
             'Tu visibilidad se ve reducida a lo iluminado por las farolas de la calle.',
             'El minimapa también se resiente: solo muestra lo que tienes cerca.'
         ]);
@@ -974,7 +974,7 @@ function instruccionesNivel2()
 function instruccionesNivel3()
 {
     return '<h1>Nivel 3</h1>' +
-        filaInstruccion('🔦', '¡Ha habido un apagón!', [
+        filaInstruccion('¡Ha habido un apagón!', [
             'Con ayuda de una linterna, encuentra las pizzas para volver a casa lo antes posible.',
             'Cuidado, ahora que está a oscuras... no vaya a ser que haya algo peligroso en la ciudad, como fantasmas.',
             'El minimapa solo enseña lo que alumbra tu linterna.'
@@ -991,7 +991,6 @@ function createMenuInicio()
         '#menu-inicio .niveles{gap:10px;}' +
         '#menu-inicio h1{margin:0 0 2px;font-size:28px;}' +
         '#menu-inicio .fila{display:flex;gap:14px;align-items:flex-start;}' +
-        '#menu-inicio .icono{font-size:26px;width:36px;text-align:center;flex:none;}' +
         '#menu-inicio h2{margin:0 0 2px;font-size:16px;color:#ffcf6b;}' +
         '#menu-inicio p{margin:0;font-size:14.5px;line-height:1.5;color:#e8e8ee;}' +
         '#menu-inicio h1.titulo{margin:0 0 4px;font-size:clamp(36px,4.4vw,58px);line-height:1.05;text-align:center;color:#ffcf6b;text-shadow:0 4px 0 #c2410c;}' +
@@ -1084,11 +1083,10 @@ function buscarHuesoMano(modelo)
         if (exacto) return exacto;
     }
 
-    var mejor = null, mejorPuntos = 0, nombres = [];
+    var mejor = null, mejorPuntos = 0;
     modelo.traverse(function (o)
     {
         if (!o.name) return;
-        nombres.push(o.name);
         var n = o.name.toLowerCase();
         if (!/hand|paw|mano|wrist|palm|zarpa|pata/.test(n)) return;
         var puntos = 1;
@@ -1098,8 +1096,6 @@ function buscarHuesoMano(modelo)
         if (/hind|back|rear|foot|leg|trasera/.test(n)) puntos -= 4;
         if (puntos > mejorPuntos) { mejorPuntos = puntos; mejor = o; }
     });
-    console.info('Huesos/nodos del gato:', nombres.join(', '));
-    console.info('Linterna en:', mejor ? mejor.name : '(ninguno: se usa una posición fija junto al gato)');
     return mejor;
 }
 
@@ -1278,7 +1274,7 @@ function createCuentaAtras()
 {
     if (window.location && window.location.protocol === 'file:')
     {
-        console.warn('⚠ Has abierto el juego con doble clic (file://). El navegador bloquea así las texturas\ny el modelo del gato. Ábrelo desde un servidor local (por ejemplo, la extensión Live Server\nde VS Code, o "python -m http.server" en la carpeta del juego).');
+        console.error('Has abierto el juego con doble clic (file://). El navegador bloquea así las texturas\ny el modelo del gato. Ábrelo desde un servidor local (por ejemplo, la extensión Live Server\nde VS Code, o "python -m http.server" en la carpeta del juego).');
     }
 
     var estilo = document.createElement('style');
@@ -2310,10 +2306,10 @@ function actualizarHud()
 {
     if (panelHud === null) return;
     var texto = '🍕 ' + pizzasRecogidas + '/' + totalPizzas +
-                '\n⏱ ' + formatearTiempo(tiempoPartida);
+                '\n' + formatearTiempo(tiempoPartida);
     if (tiempoEfectoManzana > 0)
     {
-        texto += '\n🍎 x' + multiplicadorManzana + '  ' + tiempoEfectoManzana.toFixed(1) + 's';
+        texto += '\nx' + multiplicadorManzana + '  ' + tiempoEfectoManzana.toFixed(1) + 's';
     }
     if (texto !== textoHudAnterior)
     {
@@ -3675,10 +3671,6 @@ function ajustarPivoteGato(delta, instantaneo)
     modeloGato.position.x -= (c.x + ajustePivoteGato.x) * a;
     modeloGato.position.z -= (c.z + ajustePivoteGato.z) * a;
 
-    if (instantaneo)
-    {
-        console.info('Pivote del gato: desplazamiento aplicado x=' + (-c.x).toFixed(1) + ', z=' + (-c.z).toFixed(1));
-    }
 }
 
 function loadObjGLTF()
@@ -3746,7 +3738,7 @@ function loadObjGLTF()
                 }
                 else
                 {
-                    console.warn('El modelo del gato no tiene la animacion ' + indiceAnimDerrota + ': al perder se usara la de estar quieto.');
+                    console.error('El modelo del gato no tiene la animación ' + indiceAnimDerrota + ': al perder se usará la de estar quieto.');
                 }
                 currentAction = menuAction;
                 currentAction.play();
